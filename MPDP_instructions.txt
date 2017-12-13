@@ -1,0 +1,37 @@
+set inpath = /data/nil-bluearc/black/MPDP/$patid
+@ sorted = 1
+@ economy = 5
+@ go = 1
+@ usescr = 0
+set target = $REFDIR/CAPIIO
+@ nx = 96
+@ ny = 96
+@ skip = 0
+@ epi2atl = 1
+@ normode = 0
+set tse = ( ${t2ws[1]} ) # for bold pp
+
+# FD threshold in mm
+# set FDthresh = 50.0
+
+###########
+# not used
+###########
+# set TR_vol = 0.6
+# set TE_vol = 33
+# set TR_slc = 0
+# @ epidir = 0
+# @ min_frames = 120
+
+#####################
+# FM unwarping
+#####################
+# set delta = ""
+set ped = "y-"
+set dwell = "0.59"
+# set datain = /data/nil-bluearc/black/scripts/TicModel_fieldmap_topup_datain.txt
+# set FMmag = $srcdir/sefm/${patid}_sefm_mag.nii.gz
+# set FMphase = $srcdir/sefm/${patid}_sefm_fieldmap.nii.gz
+set uwrp_cmnd	= /data/gizmo/data1/NEWT_phantom/kqa778_20_vs_64/fmri_unwarp_se.csh
+set rsam_cmnd	= /data/nil-bluearc/benzinger2/Tyler/scripts/one_step_resample.tcsh
+
