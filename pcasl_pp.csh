@@ -5,8 +5,8 @@
 set program = $0; set program = $program:t
 echo $program $argv[1-]
 
-if (${#argv} < 1) then
-	echo "usage:	"$program" params_file [instructions_file]"
+if (${#argv} != 2) then
+	echo "usage:	"$program" params_file instructions_file"
 	exit 1
 endif
 set prmfile = $1
@@ -63,9 +63,9 @@ if (${E4dfp}) then
 	echo "4dfp files have been pre-generated. Option E4dfp set with value $E4dfp. Skipping dcm_to_4dfp"
 endif
 
-if (! ${?use_anat_ave}) @ use_anat_ave = 0
+if (! ${?use_anat_ave}) @ use_anat_ave = 1
 if ($use_anat_ave) then
-	set epi_anat = $patid"_anat_ave"
+	set epi_anat = $patid"_asl_M0_ave"
 else
 	set epi_anat = $patid"_func_vols_ave"
 endif
@@ -152,8 +152,8 @@ cat		$patid"_asl_xr3d".lst
 @ ref_frame = 1
 
 # cross-realign EPI frames
-echo		cross_realign3d_4dfp -c -r$ref_frame -qv$normode -R -l$patid"_xr3d".lst
-if ($go)	cross_realign3d_4dfp -c -r$ref_frame -qv$normode -R -l$patid"_xr3d".lst
+echo		cross_realign3d_4dfp -c -r$ref_frame -qv$normode -l$patid"_asl_xr3d".lst
+if ($go)	cross_realign3d_4dfp -c -r$ref_frame -qv$normode -l$patid"_asl_xr3d".lst
 if ($status)	exit $status
 
 date
@@ -190,8 +190,6 @@ if ($go)	ifh2hdr	-r${M0_max_intensity}				$patid"_asl_M0_ave"
 echo		/bin/mv $patid"_asl_M0*" atlas
 if ($go)	/bin/mv $patid"_asl_M0"* atlas
 
-exit 0
-
 ########################
 # more movement analysis
 ########################
@@ -200,7 +198,7 @@ if (-e ${patid}"_xr3d".FD) /bin/rm	${patid}"_xr3d".FD
 touch						${patid}"_xr3d".FD
 @ k = 1
 while ($k <= $runs)
-	gawk -f $RELEASE/FD.awk $patid"_a"$irun[$k]${MBstr}"_xr3d".ddat >> ${patid}"_xr3d".FD
+	gawk -f $RELEASE/FD.awk $patid"_a"$irun[$k]"_xr3d".ddat >> ${patid}"_xr3d".FD
 	@ k++
 end
 if ($?FDthresh) then
@@ -222,17 +220,13 @@ else
 endif
 set  format = `conc2format ${patid}_func_vols.conc $skip`
 echo $format >! ${patid}_func_vols.format
-echo	actmapf_4dfp ${patid}_func_vols.format ${patid}_func_vols.conc -aave_tmp
-	actmapf_4dfp ${patid}_func_vols.format ${patid}_func_vols.conc -aave_tmp
+
 if ($status) exit $status
-nifti_4dfp -n ${patid}_func_vols_ave_tmp ${patid}_func_vols_ave_tmp
-$FSLDIR/bin/bet ${patid}_func_vols_ave_tmp.nii ${patid}_func_vols_ave_tmp_msk -f 0.3
+nifti_4dfp -n ${patid}_asl_M0_ave ${patid}_asl_M0_ave
+$FSLDIR/bin/bet ${patid}_asl_M0_ave.nii ${patid}_asl_M0_ave_msk -f 0.3
 if ($status) exit $status
-niftigz_4dfp -4  ${patid}_func_vols_ave_tmp_msk.nii.gz  ${patid}_func_vols_ave_tmp_msk
-echo	$RELEASE/run_dvar_4dfp ${patid}_func_vols.conc -m${patid}_func_vols_ave_tmp_msk -n$skip $xstr -b$anat_aveb
-	$RELEASE/run_dvar_4dfp ${patid}_func_vols.conc -m${patid}_func_vols_ave_tmp_msk -n$skip $xstr -b$anat_aveb
-if ($status) exit $status
-rm  ${patid}_func_vols_ave_tmp*
+niftigz_4dfp -4  ${patid}_asl_M0_ave_msk.nii.gz  ${patid}_asl_M0_ave_msk
+
 if ($?FDthresh) then
 	format2lst ${patid}_func_vols.format > $$.format1
 	format2lst ${patid}"_xr3d".FD.format > $$.format2
@@ -240,17 +234,12 @@ if ($?FDthresh) then
 	rm $$.format1 $$.format2
 endif
 
-set str = `format2lst -e ${patid}_func_vols.format | gawk '{k=0;l=length($1);for(i=1;i<=l;i++)if(substr($1,i,1)=="x")k++;}END{print k, l;}'`
-echo "$str[1] out of $str[2] frames fails user's frame rejection criterion"
-@ j = $str[2] - $str[1]; if ($j < $min_frames) exit 1	# require at least $min_frames below FD and/or dvar threshold to proceed
-
-actmapf_4dfp ${patid}_func_vols.format ${patid}_func_vols.conc -aave
 if ($status) exit $status
 
-if ($day1_patid != "") then
 ##########################################
 # compute cross-day $epi_anat registration
 ##########################################
+if ($day1_patid != "") then
 	set stretch_flag = ""
 	if (! ${?cross_day_nostretch}) @ cross_day_nostretch = 0;
 	if ($cross_day_nostretch) set stretch_flag = -nostretch
@@ -560,7 +549,7 @@ else if ($?FMmean) then
 	set uwrp_args = (-mean atlas/${epi_anat} $FMmean atlas/${epi_anat}_to_${target:t}_t4 $dwell $ped)
 	set log	= ${patid}_fmri_unwarp_170616_mean.log
 else
-	echo "destortion correction can not be done"
+	echo "distortion correction can not be done"
 	exit -1
 endif
 ##################################
