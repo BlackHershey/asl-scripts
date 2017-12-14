@@ -553,6 +553,8 @@ else
 	#################################
 	# t4_xr3d_4dfp for atlas resample
 	#################################
+	if ( -e atlas/${patid}_asl_xr3d_atl.lst ) /bin/rm atlas/${patid}_asl_xr3d_atl.lst
+	touch atlas/${patid}_asl_xr3d_atl.lst
 	if ( ! ${?to_MNI152} ) set to_MNI152 = 0
 	@ k = 1
 	while ($k <= $runs)
@@ -572,9 +574,17 @@ else
 			echo		/bin/rm ${patid}_a$irun[$k]_xr3d.4dfp."*"
 			if ($go)	/bin/rm ${patid}_a$irun[$k]_xr3d.4dfp.*
 		endif
+		echo $sourcedir/asl${irun[$k]}/${patid}_a${irun[$k]}_xr3d_atl.4dfp.img >> ../atlas/${patid}_asl_xr3d_atl.lst
 		popd	# out of asl$irun[$k]
 		@ k++
 	end
+
+	# make defined image and brainmasked defined image
+	pushd atlas
+	conc_4dfp ${patid}_asl_xr3d_atl -l${patid}_asl_xr3d_atl.lst -w
+	compute_defined_4dfp ${patid}_asl_xr3d_atl.conc
+	maskimg_4dfp ${patid}_asl_xr3d_atl_dfnd ${REFDIR}/glm_atlas_mask_333 ${patid}_asl_xr3d_atl_dfndm
+	popd
 
 	echo $program done status=$status
 	exit
