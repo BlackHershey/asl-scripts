@@ -252,8 +252,8 @@ if ($day1_patid != "") then
 	if ($go)	cross_day_imgreg_4dfp $patid $day1_path $day1_patid $tarstr $stretch_flag -a$trailer
 	if ($status) exit $status
 	if ($trailer != anat_ave) then
-		/bin/rm -f						${patid}_anat_ave_to_${target:t}_t4
-		ln -s $cwd/${patid}_func_vols_ave_to_${target:t}_t4	${patid}_anat_ave_to_${target:t}_t4
+		/bin/rm -f						${patid}_asl_M0_ave_to_${target:t}_t4
+		ln -s $cwd/${patid}_func_vols_ave_to_${target:t}_t4	${patid}_asl_M0_ave_to_${target:t}_t4
 	endif
 	@ Et2w = 0
 	if (-e $day1_path/$patid1"_t2wT".4dfp.img) then
@@ -456,15 +456,15 @@ if ($status) exit $status
 
 EPI_to_ATL:
 if (! $use_anat_ave && $day1_patid == "") then
-	/bin/rm ${patid}_anat_ave_to_${target:t}_t4
-	ln -s ${patid}_func_vols_ave_to_${target:t}_t4 ${patid}_anat_ave_to_${target:t}_t4
+	/bin/rm ${patid}_asl_M0_ave_to_${target:t}_t4
+	ln -s ${patid}_func_vols_ave_to_${target:t}_t4 ${patid}_asl_M0_ave_to_${target:t}_t4
 endif
 
 ########################################################################
 # make atlas transformed epi_anat and t2w in 111 222 and 333 atlas space
 ########################################################################
-set t4file = ${patid}_anat_ave_to_${target:t}_t4
-foreach O (111 222 333)
+set t4file = ${patid}_asl_M0_ave_to_${target:t}_t4
+foreach O (222)
 	echo		t4img_4dfp $t4file  ${epi_anat}	${epi_anat}_on_${target:t}_$O -O$O
 	if ($go)	t4img_4dfp $t4file  ${epi_anat}	${epi_anat}_on_${target:t}_$O -O$O
 	echo		ifh2hdr	 -r2000			${epi_anat}_on_${target:t}_$O
@@ -474,7 +474,7 @@ if ($status) exit $status
 
 if ($day1_patid != "" || ! $Et2w) goto SKIPT2W
 set t4file = ${t2w}_to_${target:t}_t4
-foreach O (111 222 333)
+foreach O (111)
 	echo		t4img_4dfp $t4file  ${t2w}	${t2w}_on_${target:t}_$O -O$O
 	if ($go)	t4img_4dfp $t4file  ${t2w}	${t2w}_on_${target:t}_$O -O$O
 	echo		ifh2hdr	 -r1000			${t2w}_on_${target:t}_$O
@@ -549,8 +549,36 @@ else if ($?FMmean) then
 	set uwrp_args = (-mean atlas/${epi_anat} $FMmean atlas/${epi_anat}_to_${target:t}_t4 $dwell $ped)
 	set log	= ${patid}_fmri_unwarp_170616_mean.log
 else
-	echo "distortion correction can not be done"
-	exit -1
+	echo "distortion will not be done"
+	#################################
+	# t4_xr3d_4dfp for atlas resample
+	#################################
+	if ( ! ${?to_MNI152} ) set to_MNI152 = 0
+	@ k = 1
+	while ($k <= $runs)
+		pushd asl$irun[$k]
+		if ($to_MNI152) then
+			set A = $RELEASE/MNI152_T1_3mm.4dfp.ifh
+			echo		t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4	${patid}_a$irun[$k] -axr3d_MNI152_3mm -v$normode -O$A
+			if ($go)	t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4   ${patid}_a$irun[$k] -axr3d_MNI152_3mm -v$normode -O$A
+		else
+			echo		t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_${target:t}_t4 ${patid}_a$irun[$k] -axr3d_atl        -v$normode -O333
+			if ($go)	t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_${target:t}_t4 ${patid}_a$irun[$k] -axr3d_atl        -v$normode -O333
+		endif
+		if ($status) exit $status
+		if ($economy > 4) then
+			echo		/bin/rm ${patid}_a$irun[$k]_xr3d_norm.4dfp."*"
+			if ($go)	/bin/rm ${patid}_a$irun[$k]_xr3d_norm.4dfp.*
+			echo		/bin/rm ${patid}_a$irun[$k]_xr3d.4dfp."*"
+			if ($go)	/bin/rm ${patid}_a$irun[$k]_xr3d.4dfp.*
+		endif
+		popd	# out of asl$irun[$k]
+		@ k++
+	end
+
+	echo $program done status=$status
+	exit
+	
 endif
 ##################################
 # compute field mapping correction
@@ -627,7 +655,7 @@ if (-e $lst) /bin/rm $lst
 touch $lst
 @ k = 1
 while ($k <= $#irun)
-	echo asl$irun[$k]/${patid}_b$irun[$k]${MBstr}_xr3d_uwrp_atl.4dfp.img >> $lst
+	echo asl$irun[$k]/${patid}_a$irun[$k]${MBstr}_xr3d_uwrp_atl.4dfp.img >> $lst
 	@ k++
 end
 conc_4dfp ${lst:r}.conc -l$lst
