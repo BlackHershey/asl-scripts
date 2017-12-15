@@ -54,9 +54,12 @@ def calculate_cbf(pcasl_4dfp_img, mask_img):
     rf_blocks = 82
     label_pulse = .0184 * rf_blocks # seconds
 
-    c = (partition_coeff * R1a) / (2 * tag_eff * (exp(-post_label_delay * R1a) - exp(-(label_pulse + post_label_delay) * R1a)))
+    cbf_image = '_'.join([img_root, 'cbf'])
+    c = (6000 * partition_coeff * R1a) / (2 * tag_eff * (exp(-post_label_delay * R1a) - exp(-(label_pulse + post_label_delay) * R1a))) # mL/100g/min
     call(['extract_frame_4dfp', img_root, '1']) # extracts first frame (M0) into <pcasl_4dfp_img>_frame1
-    call(['imgopr_4dfp', '-r' + img_root + '_cbf', '-c' + str(c), img_root + '_perf', img_root + '_frame1']) # divide multi-frame perfusion image by M0 and multiply by constant to get cbf
+    call(['imgopr_4dfp', '-r' + cbf_image, '-c' + str(c), img_root + '_perf', img_root + '_frame1']) # divide multi-frame perfusion image by M0 and multiply by constant to get cbf
+    avg_format_str = str(get_num_frames(cbf_image + '.4dfp.ifh')) + '+'
+    call(['actmapf_4dfp', '-aavg', avg_format_str, cbf_image]) # create averaged cbf image
 
 
 if __name__ == '__main__':
