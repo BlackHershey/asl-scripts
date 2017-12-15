@@ -1,3 +1,4 @@
+from itertools import product
 from math import exp
 from os import remove
 from os.path import exists
@@ -13,6 +14,13 @@ def get_num_frames(ifh):
             header_vars[key] = value
     dims = header_vars['number of dimensions']
     return int(header_vars['matrix size [{}]'.format(dims)])
+
+
+def remove_intermediate_images(perfusion_images):
+    file_endings = [ '.'.join(['4dfp', ext]) for ext in ['img', 'ifh', 'hdr', 'img.rec'] ]
+    all_files = [ '.'.join([a,b]) for a, b in list(product(perfusion_images, file_endings)) ]
+    for f in all_files:
+        remove(f)
 
 
 # Convert pcasl 4dfp image into perfusion image
@@ -36,8 +44,8 @@ def gen_pcasl_perfusion_img(pcasl_4dfp_img, mask_img):
     with open(img_lst, 'wb') as f:
         f.write('\n'.join(perfusion_images))
 
-    # TODO: remove individual perfusion images after we create combined image
     call(['paste_4dfp', '-a', img_lst, brainmasked_img + '_perf']) # combine individual perfusion images into one multi-frame image
+    remove_intermediate_images(perfusion_images)
 
 
 def calculate_cbf(pcasl_4dfp_img, mask_img):
