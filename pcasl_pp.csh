@@ -148,8 +148,8 @@ cat		$patid"_asl_xr3d".lst
 # make normode = 0
 @ normode = 0
 
-# use first frame as reference (M0)
-@ ref_frame = 1
+# use second frame as reference (dummy)
+@ ref_frame = 2
 
 # cross-realign EPI frames
 echo		cross_realign3d_4dfp -c -r$ref_frame -qv$normode -l$patid"_asl_xr3d".lst
@@ -244,7 +244,7 @@ if ($day1_patid != "") then
 	if (! ${?cross_day_nostretch}) @ cross_day_nostretch = 0;
 	if ($cross_day_nostretch) set stretch_flag = -nostretch
 	if ($use_anat_ave) then
-		set trailer = anat_ave
+		set trailer = asl_M0_ave
 	else
 		set trailer = func_vols_ave
 	endif
