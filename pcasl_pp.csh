@@ -28,6 +28,8 @@ if (${#argv} > 1) then
 	source $instructions
 endif
 
+set scripts_dir = '/net/zfs-black/BLACK/black/git/asl-scripts'
+
 ##########
 # check OS
 ##########
@@ -194,32 +196,27 @@ if ($go)	/bin/mv $patid"_asl_M0"* atlas
 # more movement analysis
 ########################
 pushd movement
-if (-e ${patid}"_xr3d".FD) /bin/rm	${patid}"_xr3d".FD
-touch						${patid}"_xr3d".FD
+if (-e ${patid}"_asl_xr3d".FD) /bin/rm	${patid}"_asl_xr3d".FD
+touch						${patid}"_asl_xr3d".FD
 @ k = 1
 while ($k <= $runs)
-	gawk -f $RELEASE/FD.awk $patid"_a"$irun[$k]"_xr3d".ddat >> ${patid}"_xr3d".FD
+	gawk -f $RELEASE/FD.awk $patid"_a"$irun[$k]"_xr3d".ddat >> ${patid}"_asl_xr3d".FD
 	@ k++
 end
 if ($?FDthresh) then
 	if (! $?FDtype) set FDtype = 1
-	conc2format ../atlas/${patid}_func_vols.conc $skip | xargs format2lst > $$.format0
-	gawk '{c="+";if ($'$FDtype' > crit)c="x"; printf ("%s\n",c)}' crit=$FDthresh ${patid}"_xr3d".FD > $$.format1
-	paste $$.format0 $$.format1 | awk '{if($1=="x")$2="x";printf("%s",$2)}' > ${patid}"_xr3d".FD.format
+	conc2format ../atlas/${patid}_asl_func_vols.conc $skip | xargs format2lst > $$.format0
+	gawk '{c="+";if ($'$FDtype' > crit)c="x"; printf ("%s\n",c)}' crit=$FDthresh ${patid}"_asl_xr3d".FD > $$.format1
+	paste $$.format0 $$.format1 | awk '{if($1=="x")$2="x";printf("%s",$2)}' > ${patid}"_asl_xr3d".FD.format
 	/bin/rm $$.format0 $$.format1
-	/bin/mv ${patid}"_xr3d".FD.format ../atlas/
+	/bin/mv ${patid}"_asl_xr3d".FD.format ../atlas/
 endif
 popd
 
 pushd atlas		# into atlas
-if (! ${?anat_aveb}) set anat_aveb = 0.
-if (! ${?anat_avet}) then			# set anat_avet excessively high if you wish not to use DVARS as a frame censoring technique
-	set xstr = ""				# compute threshold using find_dvar_crit.awk
-else
-	set xstr = -x$anat_avet
-endif
-set  format = `conc2format ${patid}_func_vols.conc $skip`
-echo $format >! ${patid}_func_vols.format
+
+set  format = `conc2format ${patid}_asl_func_vols.conc $skip`
+echo $format >! ${patid}_asl_func_vols.format
 
 if ($status) exit $status
 nifti_4dfp -n ${patid}_asl_M0_ave ${patid}_asl_M0_ave
@@ -228,9 +225,9 @@ if ($status) exit $status
 niftigz_4dfp -4  ${patid}_asl_M0_ave_msk.nii.gz  ${patid}_asl_M0_ave_msk
 
 if ($?FDthresh) then
-	format2lst ${patid}_func_vols.format > $$.format1
-	format2lst ${patid}"_xr3d".FD.format > $$.format2
-	paste $$.format1 $$.format2 | gawk '{if($1=="x")$2="x";printf("%s",$2);}' | xargs condense  > ${patid}_func_vols.format
+	format2lst ${patid}_asl_func_vols.format > $$.format1
+	format2lst ${patid}"_asl_xr3d".FD.format > $$.format2
+	paste $$.format1 $$.format2 | gawk '{if($1=="x")$2="x";printf("%s",$2);}' | xargs condense  > ${patid}_asl_func_vols.format
 	rm $$.format1 $$.format2
 endif
 
@@ -246,14 +243,14 @@ if ($day1_patid != "") then
 	if ($use_anat_ave) then
 		set trailer = asl_M0_ave
 	else
-		set trailer = func_vols_ave
+		set trailer = asl_func_vols_ave
 	endif
 	echo		cross_day_imgreg_4dfp $patid $day1_path $day1_patid $tarstr $stretch_flag -a$trailer
 	if ($go)	cross_day_imgreg_4dfp $patid $day1_path $day1_patid $tarstr $stretch_flag -a$trailer
 	if ($status) exit $status
-	if ($trailer != anat_ave) then
+	if (! $use_anat_ave ) then
 		/bin/rm -f						${patid}_asl_M0_ave_to_${target:t}_t4
-		ln -s $cwd/${patid}_func_vols_ave_to_${target:t}_t4	${patid}_asl_M0_ave_to_${target:t}_t4
+		ln -s $cwd/${patid}_asl_func_vols_ave_to_${target:t}_t4	${patid}_asl_M0_ave_to_${target:t}_t4
 	endif
 	@ Et2w = 0
 	if (-e $day1_path/$patid1"_t2wT".4dfp.img) then
@@ -326,6 +323,7 @@ while ($k <= $nmpr)
 	set mprlst = ($mprlst $patid"_mpr"$k)
 	@ k++
 end
+
 
 date
 #########################
@@ -457,7 +455,7 @@ if ($status) exit $status
 EPI_to_ATL:
 if (! $use_anat_ave && $day1_patid == "") then
 	/bin/rm ${patid}_asl_M0_ave_to_${target:t}_t4
-	ln -s ${patid}_func_vols_ave_to_${target:t}_t4 ${patid}_asl_M0_ave_to_${target:t}_t4
+	ln -s ${patid}_asl_func_vols_ave_to_${target:t}_t4 ${patid}_asl_M0_ave_to_${target:t}_t4
 endif
 
 ########################################################################
@@ -561,8 +559,8 @@ else
 		pushd asl$irun[$k]
 		if ($to_MNI152) then
 			set A = $RELEASE/MNI152_T1_3mm.4dfp.ifh
-			echo		t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4	${patid}_a$irun[$k] -axr3d_MNI152_3mm -v$normode -O$A
-			if ($go)	t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4   ${patid}_a$irun[$k] -axr3d_MNI152_3mm -v$normode -O$A
+			echo		t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4	${patid}_a$irun[$k] -axr3d_atl -v$normode -O$A
+			if ($go)	t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_MNI152lin_t4   ${patid}_a$irun[$k] -axr3d_atl -v$normode -O$A
 		else
 			echo		t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_${target:t}_t4 ${patid}_a$irun[$k] -axr3d_atl        -v$normode -O333
 			if ($go)	t4_xr3d_4dfp $sourcedir/atlas/${patid}_asl_M0_ave_to_${target:t}_t4 ${patid}_a$irun[$k] -axr3d_atl        -v$normode -O333
@@ -584,11 +582,12 @@ else
 	conc_4dfp ${patid}_asl_xr3d_atl -l${patid}_asl_xr3d_atl.lst -w
 	compute_defined_4dfp ${patid}_asl_xr3d_atl.conc
 	maskimg_4dfp ${patid}_asl_xr3d_atl_dfnd ${REFDIR}/glm_atlas_mask_333 ${patid}_asl_xr3d_atl_dfndm
+	niftigz_4dfp -n ${patid}_asl_xr3d_atl_dfndm ${patid}_asl_xr3d_atl_dfndm
 	popd
 
 	echo $program done status=$status
 	exit
-	
+
 endif
 ##################################
 # compute field mapping correction
@@ -670,7 +669,7 @@ while ($k <= $#irun)
 end
 conc_4dfp ${lst:r}.conc -l$lst
 if ($status) exit $status
-set fmtfile = atlas/${patid}_func_vols.format
+set fmtfile = atlas/${patid}_asl_func_vols.format
 if (! -e $fmtfile) exit $status
 actmapf_4dfp $fmtfile ${patid}_xr3d_uwrp_atl.conc -aave
 if ($status) exit $status
