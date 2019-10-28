@@ -11,7 +11,7 @@ from sys import stderr, exit
 from subprocess import call
 
 # Given a pcasl_pp preprocessed image, calculate weighting for the tag/control pairs based on DVARS-calculated motion
-def weighted_dvars(img, mask_img, preblur=None, crit=5.5):
+def calculate_pdvars(img, mask_img, preblur=None, crit=5.5):
 	imgroot = img.split('.')[0] # remove '.4dfp.img'
 
 	# preblur image prior to dvars if fwhm specified
@@ -63,4 +63,4 @@ if __name__ == '__main__':
 	parser.add_argument('-c', '--crit', type=float, help='pdvars criteria for frame exclusion')
 	args = parser.parse_args()
 
-	weighted_dvars(args.img, args.mask_img, args.preblur, args.crit)
+	calculate_pdvars(args.img, args.mask_img, args.preblur, args.crit)

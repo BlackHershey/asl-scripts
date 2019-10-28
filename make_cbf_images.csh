@@ -96,7 +96,7 @@ if ( $redo || ! -e movement/pdvars.dat ) then
 	@ i = 1
 	while ( $i <= ${#irun} )
 		pushd asl${irun[$i]}
-		python2 ${scripts_dir}/python/weighted_dvars.py \
+		python2 ${scripts_dir}/python/pdvars.py \
 			${patid}_a${irun[$i]}_xr3d_atl.4dfp.img \
 			${day1_path}/${day1_patid}_FSWB_on_${target}_333.4dfp.img \
 			${preblur_str} \
@@ -105,9 +105,6 @@ if ( $redo || ! -e movement/pdvars.dat ) then
 		popd
 	end
 
-	# pushd movement
-	# gawk '{c="+";if ($1 > crit)c="x"; printf ("%s",c)}' crit=${anat_avet} pdvars.dat > pdvars.format
-	# popd
 endif
 
 # make movement plot
@@ -208,12 +205,7 @@ foreach region ( FSWB GM WM )
 	endif
 end
 
-# make average run images
-pushd movement
-set weight_file = pdvars_weights.txt
-cut -f2 pdvars.dat > $weight_file
-popd
-
+# make (motion-scrubbed) average run images
 @ i = 1
 while ( $i <= ${#irun} )
 	set format_str = `cat movement/${patid}_a${irun[$i]}*${pdvars_label}_pdvars.format`
@@ -224,16 +216,6 @@ while ( $i <= ${#irun} )
 			$format_str \
 			${patid}_a${irun[$i]}${reg_label}_brainmasked_cbf${norm_label}
 	endif
-	# if ( $redo || ! -e ${patid}_a${irun[$i]}${reg_label}_brainmasked_cbf${norm_label}_avgw.4dfp.img ) then
-		set num_frames =  `echo $format_str | wc -m`
-		set start_frame =
-		cut -f2 ../movement/pdvars.dat | sed -n ""
-		actmapf_4dfp -aavgw \
-			${num_frames}+ \
-			${patid}_a${irun[$i]}${reg_label}_brainmasked_cbf${norm_label} \
-			-w../movement/$weight_file \
-			-c$num_frames # scale by num frames to undo averaging (we actually want sum of weights)
-	# endif
 	popd
 	@ i++
 end
@@ -246,18 +228,19 @@ while ( $i <= ${#irun} )
 	@ i++
 end
 
+# make all runs pdvars-weighted average
+set avg_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
+if ( $redo || ! -e ${avg_root}_avg_moco_wt.4dfp.img ) then
+	python3 ${scripts_dir}/python/weighted_average.py \
+		--images $run_list \
+		--datfile movement/pdvars.dat \
+		--outroot ${avg_root}
+endif
+
 # make histograms
 python2 ${scripts_dir}/python/make_histograms.py \
 	$run_list \
 	-m atlas/${patid}_asl${reg_label}_dfndm \
 	-r $redo
-
-# make cbf conc
-if ( ${#irun} > 1 && ($redo || ! -e ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}.conc) ) then
-	conc_4dfp \
-		${patid}_asl${reg_label}_brainmasked_cbf${norm_label} \
-		"${run_list}" \
-		-w
-endif
 
 exit 0
