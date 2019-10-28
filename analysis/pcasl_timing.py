@@ -4,6 +4,7 @@ import pydicom
 import os
 import re
 import sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'utils')) # add asl-scripts/utils to path for image_utils import below
 
 from datetime import datetime, timedelta
 from glob import glob

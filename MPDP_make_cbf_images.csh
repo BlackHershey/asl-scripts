@@ -9,7 +9,7 @@ set patids = `find . -maxdepth 1 -type d -name "MPD*_s1"`
 set exclusions = ( MPD106_s1 MPD129_s1 MPD128_s1 )
 
 set post_ldopa_avg_label = "post_ldopa_avg"
-# 
+#
 # @ redo = 0
 # @ normalize_cbf = 1 # 0 = none, 1 = additive, 2 = multiplicative
 # set smoothing_kernel = ( 1 3 1 )
@@ -44,7 +44,7 @@ foreach patid ( ${patids} )
 	set infusion_time = `cat ${study_dir}/MPDP_infusion_times.csv | grep ${patid} | cut -d"," -f2 | sed "s/://g"`
 	if ( $redo || ! -e ${patid}/cbf_pair_times.csv ) then
 		pushd $patid
-		python2 ${scripts_dir}/python/pcasl_timing.py \
+		python2 ${scripts_dir}/analysis/pcasl_timing.py \
 			${patid} \
 			${infusion_time} \
 			${inpath_str} \
@@ -58,7 +58,7 @@ foreach patid ( ${patids} )
 		# get infusion time
 		set infusion_time = `cat ${study_dir}/MPDP_infusion_times.csv | grep ${patid} | cut -d"," -f2 | sed "s/://g"`
 		pushd ${study_dir}/${patid}
-		python3 ${scripts_dir}/python/cbf_average.py \
+		python3 ${scripts_dir}/analysis/cbf_average.py \
 			./${patid}_asl${reg_label}_brainmasked_cbf${norm_label}.conc \
 			${post_ldopa_avg_label} \
 			${infusion_time} \
@@ -93,17 +93,6 @@ end
 
 
 pushd cbf
-
-# make voi files and plots
-#if ( ! -e voi_analysis ) then
-#	mkdir voi_analysis
-#endif
-
-#pushd voi_analysis
-#${scripts_dir}/gen_activity_curves.csh $redo
-#python3 ${scripts_dir}/python/average_TAC.py
-#popd
-
 
 # make average images
 imgopr_4dfp -eMPDP_pre_ldopa_cbf_average${norm_label} ${ldopa_pre_average_list}

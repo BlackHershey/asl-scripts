@@ -7,7 +7,7 @@ from os.path import split
 from subprocess import call, PIPE, run
 
 
-def post_infusion_cbf_avg(cbf_conc_img, output_root_trailer, infusion_time, fmtfile=None):
+def post_infusion_cbf_avg(cbf_conc_img, output_root_trailer, infusion_time, fmtfile=None, weight_file=None):
 	patient_dir, conc_img = split(cbf_conc_img)
 
 	infusion_time = datetime.strptime(infusion_time, '%H%M%S')
@@ -18,12 +18,19 @@ def post_infusion_cbf_avg(cbf_conc_img, output_root_trailer, infusion_time, fmtf
 	after = len(cbf_time_table) - before - during
 
 	fmt_str = ''.join([str(before), 'x', str(during), '+', str(after), 'x'])
+
+	# calculate pdvars-weighted post-LD average (scale by number of included frames)
+	if weight_file:
+		call(['actmapf_4dfp', fmt_str, conc_img, '-a' + output_root_trailer + 'w', '-w' + weight_file, '-c' + len(during)])
+
+	# create motion scrubbed (pdvars) post-LD average
 	if fmtfile:
 		fmt1 = list(run(['format2lst', '-e', fmt_str], stdout=PIPE).stdout.decode())
 		fmt2 = list(open(fmtfile).readlines()[0])
 		print(fmt1)
 		print(fmt2)
 		fmt_str = ''.join([ ('x' if v1 == 'x' else v2) for v1,v2 in zip(fmt1, fmt2) ])
+		output_root_trailer += '_moco'
 	call(['actmapf_4dfp', fmt_str, conc_img, '-a' + output_root_trailer])
 
 

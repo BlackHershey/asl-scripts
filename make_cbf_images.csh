@@ -76,7 +76,7 @@ endif
 
 # Preprocess pcasl (run pcasl_pp.csh)
 if ( $redo || ! -e asl1/${patid}_a1_xr3d_atl.4dfp.img ) then
-	${scripts_dir}/pcasl_pp.csh \
+	${scripts_dir}/core/pcasl_pp.csh \
 		$params_file \
 		$instructions_file
 endif
@@ -96,7 +96,7 @@ if ( $redo || ! -e movement/pdvars.dat ) then
 	@ i = 1
 	while ( $i <= ${#irun} )
 		pushd asl${irun[$i]}
-		python2 ${scripts_dir}/python/pdvars.py \
+		python2 ${scripts_dir}/core/pdvars.py \
 			${patid}_a${irun[$i]}_xr3d_atl.4dfp.img \
 			${day1_path}/${day1_patid}_FSWB_on_${target}_333.4dfp.img \
 			${preblur_str} \
@@ -110,7 +110,7 @@ endif
 # make movement plot
 if ( $redo || ! -e movement/mvmt_per_frame_all_runs_plot.png ) then
 	pushd movement
-	python2 ${scripts_dir}/python/plot_movement.py $patid
+	python2 ${scripts_dir}/utils/plot_movement.py $patid
 	popd
 endif
 
@@ -118,7 +118,7 @@ if ( $nonlinear && ( $redo || ! -e atlas/fnirt ) ) then
 	if ( -e atlas/fnirt ) then
 		/bin/rm -r atlas/fnirt
 	endif
-	${scripts_dir}/nonlinear_warp.csh $params_file $instructions_file -3mm
+	${scripts_dir}/core/nonlinear_warp.csh $params_file $instructions_file -3mm
 endif
 
 # loop over asl scans for each subject, make cbf images
@@ -136,7 +136,7 @@ while ( $i <= ${#irun} )
 		maskimg_4dfp -1 ${patid}_a${irun[$i]}${reg_label} ../atlas/${patid}_asl${reg_label}_dfndm ${patid}_a${irun[$i]}${reg_label}_brainmasked
 		nifti_4dfp -n ${patid}_a${irun[$i]}${reg_label}_brainmasked ${patid}_a${irun[$i]}${reg_label}_brainmasked
 
-		python3 ${scripts_dir}/python/pcasl_cbf_v2.py \
+		python3 ${scripts_dir}/core/pcasl_cbf_v2.py \
 			${patid} \
 			${i} \
 			${patid}_a${irun[$i]}${reg_label}_brainmasked.nii \
@@ -189,7 +189,7 @@ foreach region ( FSWB GM WM )
 		@ i = 1
 		while ( $i <= ${#irun} )
 			pushd asl${irun[$i]}
-				python3 ${scripts_dir}/python/normalize_cbf_pairs.py \
+				python3 ${scripts_dir}/core/normalize_cbf_pairs.py \
 					${patid}_a${irun[$i]}${reg_label}_brainmasked_cbf.nii \
 					--mask ${region_mask}.nii.gz\
 					$shift_str \
@@ -231,14 +231,14 @@ end
 # make all runs pdvars-weighted average
 set avg_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
 if ( $redo || ! -e ${avg_root}_avg_moco_wt.4dfp.img ) then
-	python3 ${scripts_dir}/python/weighted_average.py \
+	python3 ${scripts_dir}/core/weighted_average.py \
 		--images $run_list \
 		--datfile movement/pdvars.dat \
 		--outroot ${avg_root}
 endif
 
 # make histograms
-python2 ${scripts_dir}/python/make_histograms.py \
+python2 ${scripts_dir}/utils/make_histograms.py \
 	$run_list \
 	-m atlas/${patid}_asl${reg_label}_dfndm \
 	-r $redo
