@@ -7,8 +7,8 @@ import sys
 
 from datetime import datetime, timedelta
 from glob import glob
+from image_utils import get_num_frames
 from os.path import join, exists
-from pcasl_cbf import get_num_frames
 
 SCAN_START_FILE = 'scan_start_times.csv'
 CBF_PAIR_FILE = 'cbf_pair_times.csv'
@@ -36,7 +36,7 @@ def read_csv(infile):
 def get_content_time_table(patid, inpath, rerun=False):
 	if not rerun and exists(SCAN_START_FILE):
 		return read_csv(SCAN_START_FILE)
-	
+
 	dicom_headers = glob(join(inpath, 'study99', '*.dcm'))
 
 	content_times = []
@@ -69,7 +69,7 @@ def get_cbf_time_table(patid, infusion_time, inpath=os.getcwd(), rerun=False):
 				time_since_infusion = (pair_time - infusion_time).total_seconds() / 60
 				cbf_pair_times.append((patid, asl_run, cbf_pair, pair_time.strftime('%H:%M:%S.%f'), time_since_infusion))
 		os.chdir('..')
-		
+
 
 	write_csv(['patid', 'asl_run', 'cbf_pair', 'pair_time', 'minutes_since_infusion'], cbf_pair_times, CBF_PAIR_FILE)
 

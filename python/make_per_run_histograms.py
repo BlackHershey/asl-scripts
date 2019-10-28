@@ -1,14 +1,15 @@
-from subprocess import call
-from cycler import cycler
-from pcasl_cbf import get_num_frames
 import argparse
 import re
 import matplotlib
 matplotlib.use('Qt4Agg') # must be set prior to pyplot import
+
+from cycler import cycler
+from image_utils import get_num_frames
 from matplotlib import pyplot
 import numpy as np
 from os import chdir, getcwd, listdir, remove
 from os.path import join, exists
+from subprocess import call
 
 PROJECT_DIR = '/net/zfs-black/BLACK/black/MPDP'
 

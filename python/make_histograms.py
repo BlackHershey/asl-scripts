@@ -1,14 +1,15 @@
-from subprocess import call
-from pcasl_cbf import get_num_frames
 import argparse
 import re
 import matplotlib
 matplotlib.use('Qt4Agg') # must be set prior to pyplot import
+
 from matplotlib import pyplot
 from cycler import cycler
+from image_utils import get_num_frames
 import numpy as np
 from os import chdir, getcwd, remove
 from os.path import exists, split, basename
+from subprocess import call
 
 
 def read_hist_file(hist_file):
@@ -52,7 +53,7 @@ def make_all_runs_histograms(imgs, mask, redo):
 
 def make_per_run_histograms(imgs, mask, redo):
     initial_dir = getcwd()
-	
+
     for img in imgs:
         directory, filename = split(img)
         chdir(directory) # change to current image's directory
@@ -95,4 +96,3 @@ if __name__ == '__main__':
 
     make_all_runs_histograms(args.images, args.mask, args.redo)
     make_per_run_histograms(args.images, args.mask, args.redo)
-
