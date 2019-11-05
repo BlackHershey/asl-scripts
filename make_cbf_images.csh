@@ -70,9 +70,8 @@ set reg_label = "_xr3d_atl"
 if ( ! ${?nonlinear} ) @ nonlinear = 0
 if ( $nonlinear ) then
 	set atl_label = "on_"${fnirt_ref:t:r:r}"_via_fnirt"
-	set reg_label = "_xr3d_atl_nlin"``
+	set reg_label = "_xr3d_atl_nlin"
 endif
-
 
 # Preprocess pcasl (run pcasl_pp.csh)
 if ( $redo || ! -e asl1/${patid}_a1_xr3d_atl.4dfp.img ) then
@@ -96,7 +95,7 @@ if ( $redo || ! -e movement/pdvars.dat ) then
 	@ i = 1
 	while ( $i <= ${#irun} )
 		pushd asl${irun[$i]}
-		python2 ${scripts_dir}/core/pdvars.py \
+		python3 ${scripts_dir}/core/pdvars.py \
 			${patid}_a${irun[$i]}_xr3d_atl.4dfp.img \
 			${day1_path}/${day1_patid}_FSWB_on_${target}_333.4dfp.img \
 			${preblur_str} \
@@ -228,17 +227,22 @@ while ( $i <= ${#irun} )
 	@ i++
 end
 
+# make cbf conc
+set conc_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
+if ( ${#irun} > 1 && ($redo || ! -e ${conc_root}.conc) ) then
+	conc_4dfp ${conc_root} ${run_list} -w
+endif
+
 # make all runs pdvars-weighted average
-set avg_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
-if ( $redo || ! -e ${avg_root}_avg_moco_wt.4dfp.img ) then
-	python3 ${scripts_dir}/core/weighted_average.py \
-		--images $run_list \
-		--datfile movement/pdvars.dat \
-		--outroot ${avg_root}
+if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
+	python3 ${scripts_dir}/analysis/weighted_average.py \
+		--conc ${conc_root}.conc \
+		--trailer asl_all_runs
+		endif
 endif
 
 # make histograms
-python2 ${scripts_dir}/utils/make_histograms.py \
+python3 ${scripts_dir}/utils/make_histograms.py \
 	$run_list \
 	-m atlas/${patid}_asl${reg_label}_dfndm \
 	-r $redo

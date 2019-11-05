@@ -1,7 +1,5 @@
 #!/bin/csh
 
-echo "here"
-
 set study_dir = $cwd
 set scripts_dir = /net/zfs-black/BLACK/black/git/asl-scripts
 
@@ -9,10 +7,6 @@ set patids = `find . -maxdepth 1 -type d -name "MPD*_s1"`
 set exclusions = ( MPD106_s1 MPD129_s1 MPD128_s1 )
 
 set post_ldopa_avg_label = "post_ldopa_avg"
-#
-# @ redo = 0
-# @ normalize_cbf = 1 # 0 = none, 1 = additive, 2 = multiplicative
-# set smoothing_kernel = ( 1 3 1 )
 
 set ldopa_effect_average_list = ""
 set ldopa_pre_average_list = ""
@@ -31,10 +25,10 @@ endif
 if ( ! -d cbf ) mkdir cbf
 
 foreach patid ( ${patids} )
-
 	pushd $patid
-	${scripts_dir}/make_cbf_images.csh ${patid}.params ${study_dir}/MPDP_instructions.txt
-	popd
+
+	# execute main CBF processing script
+	source ${scripts_dir}/make_cbf_images.csh ${patid}.params ${study_dir}/MPDP_instructions.txt
 
 	# make pair time tables
 	set inpath_str = ""
@@ -43,22 +37,31 @@ foreach patid ( ${patids} )
 	endif
 	set infusion_time = `cat ${study_dir}/MPDP_infusion_times.csv | grep ${patid} | cut -d"," -f2 | sed "s/://g"`
 	if ( $redo || ! -e ${patid}/cbf_pair_times.csv ) then
-		pushd $patid
-		python2 ${scripts_dir}/analysis/pcasl_timing.py \
+		python3 ${scripts_dir}/analysis/pcasl_timing.py \
 			${patid} \
 			${infusion_time} \
 			${inpath_str} \
 			-r
-		popd
+	endif
+
+	# make pdvars weighted pre-LD  average
+	if ( $redo || ! -e ${conc_root}_pre_ldopa_avg_moco_wt.4dfp.img ) then
+		@ preLD_frames = `cat movement/${patid}_a1_xr3d_atl_msk_b${anat_aveb}0_pdvars.format | wc -m`
+		@ total_frames = `cat movement/pdvars.dat | wc -l`
+		@ exclude_frames = `expr $total_frames - $preLD_frames`
+		set fmtstr = `format2lst -e ${preLD_frames}+${exclude_frames}x`
+		python3 ${scripts_dir}/analysis/weighted_average.py \
+			--conc ${conc_root}.conc \
+			--trailer pre_ldopa \
+			--fmtstr $fmtstr
 	endif
 
 
 	# make 15-40 minute CBF average, CBF ldopa post minus pre image
-	# if ( $redo || ! -e ${study_dir}/${patid}/${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre.4dfp.img ) then
+	if ( $redo || ! -e ${study_dir}/${patid}/${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre.4dfp.img ) then
 		# get infusion time
 		set infusion_time = `cat ${study_dir}/MPDP_infusion_times.csv | grep ${patid} | cut -d"," -f2 | sed "s/://g"`
-		pushd ${study_dir}/${patid}
-		python3 ${scripts_dir}/analysis/cbf_average.py \
+		python3 ${scripts_dir}/analysis/post_ld_average.py \
 			./${patid}_asl${reg_label}_brainmasked_cbf${norm_label}.conc \
 			${post_ldopa_avg_label} \
 			${infusion_time} \
@@ -71,18 +74,18 @@ foreach patid ( ${patids} )
 			nifti_4dfp -n ${img} ${img}.nii
 			ln -s ${study_dir}/${patid}/${img}.nii ${study_dir}/cbf/${img}.nii
 		end
-		popd
-	# endif
+	endif
 
 	# make average lists (excluding excluded subjects and second sessions)
 	if ( $patid =~ "*_s1" && ! ( "${exclusions}" =~ "*${patid}*") ) then
-		echo $patid
-		set ldopa_effect_average_list = ( ${ldopa_effect_average_list} ../${patid}/${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre )
-		set ldopa_pre_average_list = ( ${ldopa_pre_average_list} ../${patid}/asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco )
-		set ldopa_post_average_list = ( ${ldopa_post_average_list} ../${patid}/${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_${post_ldopa_avg_label} )
-		set dfnd_list = ( ${dfnd_list} ../${patid}/atlas/${patid}_asl${reg_label}_dfndm.4dfp.img )
-		set fswb_list = ( $fswb_list ../${patid}/atlas/${patid}_FSWB_on_${target}_333_${atl_label}.4dfp.img )
+		set ldopa_effect_average_list = ( ${ldopa_effect_average_list} ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre )
+		set ldopa_pre_average_list = ( ${ldopa_pre_average_list} asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco )
+		set ldopa_post_average_list = ( ${ldopa_post_average_list} ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_${post_ldopa_avg_label} )
+		set dfnd_list = ( ${dfnd_list} atlas/${patid}_asl${reg_label}_dfndm.4dfp.img )
+		set fswb_list = ( $fswb_list atlas/${patid}_FSWB_on_${target}_333_${atl_label}.4dfp.img )
 	endif
+
+	popd
 end
 
 # create combined global number files for all subjects (WB, GM, WM)
@@ -90,7 +93,6 @@ foreach region ( WB GM WM )
 	find . -type f -name "pair_global_numbers_${region}.csv" -exec awk 'FNR==1 && NR!=1{next;}{print}' {} + > all_pair_global_numbers_${region}.csv
 	find . -type f -name "avg_global_numbers_${region}.csv" -exec awk 'FNR==1 && NR!=1{next;}{print}' {} + > all_avg_global_numbers_${region}.csv
 end
-
 
 pushd cbf
 
