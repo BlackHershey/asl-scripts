@@ -43,7 +43,7 @@ def calculate_pdvars(img, mask_img, preblur=None, crit=5.5):
 	pdvars = np.insert(pdvars, [0, len(pdvars)], [500,500]) # set first and last frames intentionally high
 
 	with open('../movement/pdvars.dat', 'ab') as f:
-		np.savetxt(f, pdvars)
+		np.savetxt(f, pdvars, fmt='%s')
 
 	format_str = ''.join([ ('x' if v > crit else '+') for v in pdvars ])
 	with open('../movement/{}_pdvars.format'.format(imgroot), 'w') as f:
