@@ -1,9 +1,7 @@
 import argparse
 import re
-import matplotlib
-matplotlib.use('Qt4Agg') # must be set prior to pyplot import
+import matplotlib.pyplot as plt
 
-from matplotlib import pyplot
 from cycler import cycler
 from image_utils import get_num_frames
 import numpy as np
@@ -41,14 +39,14 @@ def make_all_runs_histograms(imgs, mask, redo):
             call(['img_hist_4dfp', filename, '-h', '-r-61to121', '-b183', mask_str])
 
         data = read_hist_file(hist_file)
-        pyplot.plot(data[0], data[1])
+        plt.plot(data[0], data[1])
 
         chdir('..')
 
-    pyplot.xlim(-60,120) # remove axis padding
-    pyplot.figlegend(asl_runs)
-    pyplot.savefig(re.sub('a\d', 'asl', img_root) + '_histogram.png')
-    pyplot.close()
+    plt.xlim(-60,120) # remove axis padding
+    plt.figlegend(asl_runs)
+    plt.savefig(re.sub('a\d', 'asl', img_root) + '_histogram.png')
+    plt.close()
 
 
 def make_per_run_histograms(imgs, mask, redo):
@@ -72,15 +70,15 @@ def make_per_run_histograms(imgs, mask, redo):
             call(['img_hist_4dfp', img_root, '-h', '-r-61to121', '-b183', '-f' + str(i), mask_str])
 
             data = read_hist_file(hist_file)
-            pyplot.plot(data[0], data[1])
+            plt.plot(data[0], data[1])
 
             remove(hist_file)
 
-        pyplot.xlim(-50,100) # remove axis padding
-        pyplot.ylim(0,2000) # remove axis padding
-        pyplot.figlegend(['frame' + str(i) for i in frames])
-        pyplot.savefig(hist_img)
-        pyplot.close()
+        plt.xlim(-50,100) # remove axis padding
+        plt.ylim(0,2000) # remove axis padding
+        plt.figlegend(['frame' + str(i) for i in frames])
+        plt.savefig(hist_img)
+        plt.close()
         chdir(initial_dir)
 
 
@@ -91,8 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--redo', nargs='?', type=int, choices=[0,1], const=1, default=0)
     args = parser.parse_args()
 
-    colors = pyplot.rcParams['axes.prop_cycle'].by_key()['color']
-    pyplot.rc('axes', prop_cycle=(cycler('linestyle', ['-', ':']) * cycler('color', colors)))
+    colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
+    plt.rc('axes', prop_cycle=(cycler('linestyle', ['-', ':']) * cycler('color', colors)))
 
     make_all_runs_histograms(args.images, args.mask, args.redo)
     make_per_run_histograms(args.images, args.mask, args.redo)
