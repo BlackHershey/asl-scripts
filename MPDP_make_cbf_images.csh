@@ -3,10 +3,13 @@
 set study_dir = $cwd
 set scripts_dir = /net/zfs-black/BLACK/black/git/asl-scripts
 
+source ${scripts_dir}/asl_venv/bin/activate.csh
+
 set patids = `find . -maxdepth 1 -type d -name "MPD*_s1"`
 set exclusions = ( MPD106_s1 MPD129_s1 MPD128_s1 )
 
 set post_ldopa_avg_label = "post_ldopa_avg"
+set worse_sideL_label = "worseL"
 
 set ldopa_effect_average_list = ""
 set ldopa_pre_average_list = ""
@@ -44,6 +47,33 @@ foreach patid ( ${patids} )
 			-r
 	endif
 
+	set conc_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
+
+	# flip (if needed) so that worse brain side is on the left
+	if ( $redo || ! -e ${conc_root}_${worse_sideL_label}.conc ) then
+		set worse_hand = `cat ${study_dir}/mpdp_updrs_tap_demo.csv | grep $patid | cut -d, -f 5`
+		set worseL_run_list = ()
+		foreach i ( $irun )
+			pushd asl${i}
+
+			set cbfroot = ${patid}_a${i}${reg_label}_brainmasked_cbf${norm_label}
+			set worseL_imgroot = ${cbfroot}_${worse_sideL_label}
+			if ( $worse_hand == 'R' ) then
+				ln -s ${cbfroot}.nii ${worseL_imgroot}.nii
+			else
+				fslswapdim ${cbfroot}.nii -x y z ${worseL_imgroot}.nii.gz
+				gunzip -f ${worseL_imgroot}.nii.gz
+			endif
+
+			nifti_4dfp -4 ${worseL_imgroot} ${worseL_imgroot}
+			set worseL_run_list = ( $worseL_run_list asl${i}/${worseL_imgroot}.4dfp.img )
+			popd
+		end
+		conc_4dfp -w ${conc_root}_${worse_sideL_label} $worseL_run_list
+	endif
+
+	set conc_root = ${conc_root}_${worse_sideL_label}
+
 	# make pdvars weighted pre-LD  average
 	if ( $redo || ! -e ${conc_root}_pre_ldopa_avg_moco_wt.4dfp.img ) then
 		@ preLD_frames = `cat movement/${patid}_a1_xr3d_atl_msk_b${anat_aveb}0_pdvars.format | wc -m`
@@ -58,19 +88,25 @@ foreach patid ( ${patids} )
 
 
 	# make 15-40 minute CBF average, CBF ldopa post minus pre image
-	if ( $redo || ! -e ${study_dir}/${patid}/${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre.4dfp.img ) then
+	if ( $redo || ! -e ${conc_root}_ldopa_post_minus_pre.4dfp.img ) then
 		# get infusion time
 		set infusion_time = `cat ${study_dir}/MPDP_infusion_times.csv | grep ${patid} | cut -d"," -f2 | sed "s/://g"`
+
+		# create post-LD average images (scrubbed and weighted) using timing info
 		python3 ${scripts_dir}/analysis/post_ld_average.py \
-			./${patid}_asl${reg_label}_brainmasked_cbf${norm_label}.conc \
+			${conc_root}.conc \
 			${post_ldopa_avg_label} \
 			${infusion_time} \
 			--fmtfile movement/pdvars.format
+
+		# subtract pre ldopa avg from post ldopa avg
 		imgopr_4dfp \
-			-s${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre \
-			${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_${post_ldopa_avg_label} \
-			asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco
-		foreach img ( ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_${post_ldopa_avg_label} ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre )
+			-s${conc_root}_ldopa_post_minus_pre \
+			${conc_root}_${post_ldopa_avg_label}_moco \
+			asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco_${worse_sideL_label}
+
+		# convert to nifti and create links in group analysis folder
+		foreach img ( ${conc_root}_${post_ldopa_avg_label} ${conc_root}_ldopa_post_minus_pre )
 			nifti_4dfp -n ${img} ${img}.nii
 			ln -s ${study_dir}/${patid}/${img}.nii ${study_dir}/cbf/${img}.nii
 		end
@@ -78,9 +114,9 @@ foreach patid ( ${patids} )
 
 	# make average lists (excluding excluded subjects and second sessions)
 	if ( $patid =~ "*_s1" && ! ( "${exclusions}" =~ "*${patid}*") ) then
-		set ldopa_effect_average_list = ( ${ldopa_effect_average_list} ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_ldopa_post_minus_pre )
-		set ldopa_pre_average_list = ( ${ldopa_pre_average_list} asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco )
-		set ldopa_post_average_list = ( ${ldopa_post_average_list} ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_${post_ldopa_avg_label} )
+		set ldopa_effect_average_list = ( ${ldopa_effect_average_list} ${conc_root}_ldopa_post_minus_pre )
+		set ldopa_pre_average_list = ( ${ldopa_pre_average_list} asl${irun[1]}/${patid}_a${irun[1]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco_${worse_sideL_label} )
+		set ldopa_post_average_list = ( ${ldopa_post_average_list} ${conc_root}_${post_ldopa_avg_label}_moco )
 		set dfnd_list = ( ${dfnd_list} atlas/${patid}_asl${reg_label}_dfndm.4dfp.img )
 		set fswb_list = ( $fswb_list atlas/${patid}_FSWB_on_${target}_333_${atl_label}.4dfp.img )
 	endif
