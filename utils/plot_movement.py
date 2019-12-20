@@ -1,10 +1,7 @@
 import sys
 import numpy as np
 
-import matplotlib
-matplotlib.use('Qt4Agg') # must be set prior to pyplot import
 from matplotlib import pyplot
-
 from os import chdir, getcwd, listdir
 from os.path import join
 
@@ -29,11 +26,12 @@ def plot_mvmt(patid):
 
         for d in data:
             axes[i].plot(d)
-            axes[i].set_xlim(0,35) # remove axis padding
-            axes[i].set_ylim(-2.5,2.5)
-            axes[i].set_xticks(np.arange(0, 35, 1), minor=True)
-            axes[i].set_yticks(np.arange(-2.5, 3, .5), minor=True)
-            axes[i].set_ylabel('asl' + str(i+1))
+        axes[i].set_xlim(0,35) # remove axis padding
+        axes[i].set_ylim(-2.5,2.5)
+        axes[i].set_xticks(np.arange(0, 35, 1), minor=True)
+        axes[i].set_yticks(np.arange(-2.5, 3, .5), minor=True)
+        run_label = next(s for s in rdat.split('_') if s != patid)
+        axes[i].set_ylabel(run_label)
 
     pyplot.yticks(np.arange(-2, 3, 1))
     pyplot.figlegend(['dx (mm)', 'dy (mm)', 'dz (mm)', 'rotx (deg)', 'roty (deg)', 'rotz (deg)'])

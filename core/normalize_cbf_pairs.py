@@ -15,7 +15,6 @@ def shift_mode(cbfimg, shift_type=0, maskimg=None, redo=False):
 	imgdata = img.get_data()
 
 	maskdata = nb.load(maskimg).get_data() if maskimg else np.ones_like(imgdata)
-	print(maskimg, maskdata.shape)
 	maskdata = np.squeeze(maskdata)
 
 	stats = []

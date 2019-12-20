@@ -1,5 +1,6 @@
 import argparse
 import csv
+import numpy as np
 import re
 import matplotlib.ticker
 import seaborn as sns
@@ -10,13 +11,7 @@ from os.path import abspath, basename, join
 
 def read_CBF_numbers(patid, mask='WB'):
 	pair_file = join(patid, 'pair_global_numbers_{}.csv'.format(mask))
-	cbf = []
-	with open(pair_file, 'r') as f:
-	    reader = csv.reader(f)
-	    next(reader) # skip header row
-	    for row in reader:
-	        cbf.append(float(row[6]))
-	return cbf
+	return np.genfromtxt(pair_file, usecols=3, skip_header=1, delimiter=',')
 
 
 def read_mvmt_numbers(patid, filename):
@@ -35,7 +30,7 @@ all_mvmt = {
 	'DVARS': {}
 }
 
-fd_ticks = [.2, .5, 1, 2, 10] 
+fd_ticks = [.2, .5, 1, 2, 10]
 dvars_max_lim = 16
 
 if args.patids:
@@ -52,7 +47,7 @@ for mvmt_type in ['FD', 'DVARS']:
 		fig, ax1 = plt.subplots()
 		ax1.set_xlabel(mvmt_type)
 		ax1.set_ylabel(' '.join([region, 'CBF']))
-		
+
 		legend = []
 		for patid in patids:
 			if re.match('MPD1(06|10)', patid):
@@ -65,7 +60,7 @@ for mvmt_type in ['FD', 'DVARS']:
 			else:
 				mvmt = []
 				# read in FD and store max of pairs in y1
-				fd_frames = read_mvmt_numbers(patid, '{}_xr3d.FD'.format(patid))
+				fd_frames = read_mvmt_numbers(patid, '{}_asl_xr3d.FD'.format(patid))
 				for i in range(2, len(fd_frames), 2):
 					if fd_frames[i] == 500:
 						continue
@@ -75,7 +70,7 @@ for mvmt_type in ['FD', 'DVARS']:
 			ax1.scatter(mvmt, cbf)
 
 			all_mvmt[mvmt_type][patid] = mvmt
-		
+
 		if mvmt_type == 'FD':
 			ax1.set_xscale('log')
 			ax1.set_xticks(fd_ticks)
@@ -112,6 +107,3 @@ for region_label, cbf_values in [('GM', gm_cbf), ('WM', wm_cbf)]:
 	plot(fd_pairs, cbf_values, 'FD', region_label)
 	plot(dvars, cbf_values, 'DVARS', region_label)
 """
-
-
-

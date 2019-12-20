@@ -9,6 +9,8 @@ from matplotlib import pyplot as plt
 from os.path import abspath, basename, join
 from scipy.stats import binned_statistic
 
+from average_TAC import EXCLUSIONS
+
 pdvars = 1
 outdir = '/net/zfs-black/BLACK/black/MPDP/fnirt_sym/cbf/worse_side_L/voi_analysis'
 
@@ -48,8 +50,8 @@ for region in REGIONS:
 		y = []
 		for idx, row in data.iterrows():
 			patid = row['patid']
-	
-			if patid == 'MPD106_s1':
+
+			if patid in EXCLUSIONS: 
 				continue
 
 			tac_file = join(patid, '{}_{}_tac{}.csv'.format(patid, region, pdvars_label))
@@ -65,7 +67,7 @@ for region in REGIONS:
 		means_y = binned_statistic(x, y, statistic='mean', bins=bins).statistic
 		counts_y = binned_statistic(x, y, statistic='count', bins=bins).statistic
 		stds_y = binned_statistic(x, y, statistic=lambda x: np.std(x), bins=bins).statistic
-	
+
 		with open(join(outdir, 'binned_average_tac_{}_group{}.csv'.format(region, g)), 'w') as f:
 			writer = csv.writer(f)
 			writer.writerow(['mean_bin_time', 'mean_roi_val', 'std_roi_val', 'n'])
@@ -85,11 +87,3 @@ for region in REGIONS:
 	plt.ylim(y_lims[0], y_lims[1])
 	#plt.show()
 	plt.savefig(join(outdir, 'grouped_binned_average_{}_tac_moco.png'.format(region)))
-
-
-
-
-
-
-
-
