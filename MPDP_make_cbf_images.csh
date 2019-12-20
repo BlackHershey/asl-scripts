@@ -3,8 +3,6 @@
 set study_dir = $cwd
 set scripts_dir = /net/zfs-black/BLACK/black/git/asl-scripts
 
-source ${scripts_dir}/asl_venv/bin/activate.csh
-
 set patids = `find . -maxdepth 1 -type d -name "MPD*_s1"`
 set exclusions = ( MPD106_s1 MPD129_s1 MPD128_s1 )
 
@@ -42,7 +40,6 @@ foreach patid ( ${patids} )
 	if ( $redo || ! -e ${patid}/cbf_pair_times.csv ) then
 		python3 ${scripts_dir}/analysis/pcasl_timing.py \
 			${patid} \
-			${infusion_time} \
 			${inpath_str} \
 			-r
 	endif
@@ -81,7 +78,7 @@ foreach patid ( ${patids} )
 		@ exclude_frames = `expr $total_frames - $preLD_frames`
 		set fmtstr = `format2lst -e ${preLD_frames}+${exclude_frames}x`
 		python3 ${scripts_dir}/analysis/weighted_average.py \
-			--conc ${conc_root}.conc \
+			${conc_root}.conc \
 			--trailer pre_ldopa \
 			--fmtstr $fmtstr
 	endif

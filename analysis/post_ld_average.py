@@ -29,7 +29,7 @@ def post_infusion_cbf_avg(cbf_conc_img, output_trailer, infusion_time, fmtfile=N
 		fmt2 = list(open(fmtfile).readlines()[0])
 		timing_fmt = ''.join([ ('x' if v1 == 'x' else v2) for v1,v2 in zip(fmt1, fmt2) ])
 		output_trailer += '_moco'
-	call(['actmapf_4dfp', timing_fmt, conc_img, '-a' + output_trailer])
+	call(['actmapf_4dfp', timing_fmt, cbf_conc_img, '-a' + output_trailer])
 
 
 if __name__ == '__main__':

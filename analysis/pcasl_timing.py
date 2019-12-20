@@ -13,7 +13,7 @@ from os.path import join, exists
 
 SCAN_START_FILE = 'scan_start_times.csv'
 CBF_PAIR_FILE = 'cbf_pair_times.csv'
-INFUSION_FILE = 'MPDP_infusion_times.csv'
+INFUSION_FILE = '../MPDP_infusion_times.csv'
 
 # for all dicom images in a study 99 folder, get list of tuples containing series number and content time
 def get_content_time_table(patid, inpath, rerun=False):
@@ -46,7 +46,7 @@ def get_infusion_time(patid):
 	return None
 
 
-def gen_cbf_time_table(patid, inpath=os.getcwd(), rerun=False):
+def get_cbf_time_table(patid, inpath=os.getcwd(), rerun=False):
 	if not rerun and exists(CBF_PAIR_FILE):
 		return np.genfromtxt(CBF_PAIR_FILE, delimiter=',', skip_header=1, usecols=(1,2,4))
 

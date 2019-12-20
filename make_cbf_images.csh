@@ -7,6 +7,7 @@ if (${#argv} != 2) then
 	echo "usage:	"$program" params_file instructions_file"
 	exit 1
 endif
+
 set params_file = $1
 echo "params_file="$params_file
 
@@ -236,7 +237,7 @@ endif
 # make all runs pdvars-weighted average
 if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
 	python3 ${scripts_dir}/analysis/weighted_average.py \
-		--conc ${conc_root}.conc \
+		${conc_root}.conc \
 		--trailer asl_all_runs
 		endif
 endif
