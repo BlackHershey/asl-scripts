@@ -1,5 +1,6 @@
 *__pycache__*
 .vscode/
-*venv/
+*venv*/
 pcasl_perfusion.txt
 gen_missing_data_mask.csh
+env*

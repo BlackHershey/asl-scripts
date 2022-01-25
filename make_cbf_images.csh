@@ -1,6 +1,7 @@
 #!/bin/csh
 
-set scripts_dir = /net/zfs-black/BLACK/black/git/asl-scripts
+set scripts_dir = /data/nil-bluearc/black/git/asl-scripts
+source /net/zfs-black/BLACK/black/git/utils/utils_venv_hal/bin/activate.csh
 
 set program = $0; set program = $program:t
 if (${#argv} != 2) then
@@ -40,7 +41,7 @@ endif
 set crit_str = ""
 if ( ! ${?anat_avet} ) set anat_avet = 500
 set crit_str = "--crit ${anat_avet}"
-
+echo $crit_str
 if ( ! ${?normalize_cbf} ) then
 	set norm_label = ""
 	set normalize_cbf = 0
@@ -100,7 +101,7 @@ if ( $redo || ! -e movement/pdvars.dat ) then
 			${patid}_a${irun[$i]}_xr3d_atl.4dfp.img \
 			${day1_path}/${day1_patid}_FSWB_on_${target}_333.4dfp.img \
 			${preblur_str} \
-			${crit_str}
+			${crit_str}   #The current version of pdvars.py ignores this value
 		@ i++
 		popd
 	end
@@ -109,8 +110,8 @@ endif
 
 # make movement plot
 if ( $redo || ! -e movement/mvmt_per_frame_all_runs_plot.png ) then
-	pushd movement
-	python2 ${scripts_dir}/utils/plot_movement.py $patid
+    pushd movement
+	python3 ${scripts_dir}/utils/plot_movement.py $patid
 	popd
 endif
 
@@ -135,7 +136,6 @@ while ( $i <= ${#irun} )
 
 		maskimg_4dfp -1 ${patid}_a${irun[$i]}${reg_label} ../atlas/${patid}_asl${reg_label}_dfndm ${patid}_a${irun[$i]}${reg_label}_brainmasked
 		nifti_4dfp -n ${patid}_a${irun[$i]}${reg_label}_brainmasked ${patid}_a${irun[$i]}${reg_label}_brainmasked
-
 		python3 ${scripts_dir}/core/pcasl_cbf_v2.py \
 			${patid} \
 			${i} \
@@ -182,6 +182,11 @@ foreach region ( FSWB GM WM )
 			set region_mask = ${day1_path}/${day1_patid}_asl${reg_label}_dfndm
 			set region = "WB"
 			set shift_str = "--shift "$normalize_cbf
+		else
+			# fslmaths multiply region_mask by _dfndm, call output ${region_mask}"_dfndm"
+			fslmaths ${region_mask} -mul ${day1_path}/${day1_patid}_asl${reg_label}_dfndm ${region_mask}"_dfndm"
+			# set region_mask = ${region_mask}"_dfndm"
+			set region_mask = ${region_mask}"_dfndm"
 		endif
 
 		set global_num_outfile = pair_global_numbers_${region}.csv
@@ -209,7 +214,8 @@ end
 @ i = 1
 while ( $i <= ${#irun} )
 	set format_str = `cat movement/${patid}_a${irun[$i]}*${pdvars_label}_pdvars.format`
-
+	echo ${irun[$i]}
+	echo ${pdvars_label}
 	pushd asl${irun[$i]}
 	if ( $redo || ! -e ${patid}_a${irun[$i]}${reg_label}_brainmasked_cbf${norm_label}_avg_moco.4dfp.img ) then
 		actmapf_4dfp -aavg_moco \
@@ -230,11 +236,12 @@ end
 
 # make cbf conc
 set conc_root = ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}
-if ( ${#irun} > 1 && ($redo || ! -e ${conc_root}.conc) ) then
+if ( ${#irun} >= 1 && ($redo || ! -e ${conc_root}.conc) ) then
 	conc_4dfp ${conc_root} ${run_list} -w
 endif
 
 # make all runs pdvars-weighted average
+
 if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
 	python3 ${scripts_dir}/analysis/weighted_average.py \
 		${conc_root}.conc \
@@ -243,9 +250,11 @@ if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
 endif
 
 # make histograms
+set initial_dir = $PWD
 python3 ${scripts_dir}/utils/make_histograms.py \
 	$run_list \
-	-m atlas/${patid}_asl${reg_label}_dfndm \
+	-m ${initial_dir}/atlas/${patid}_asl${reg_label}_dfndm \
 	-r $redo
 
+deactivate
 exit 0

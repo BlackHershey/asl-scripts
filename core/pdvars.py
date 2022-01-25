@@ -11,7 +11,7 @@ from sys import stderr, exit
 from subprocess import call
 
 # Given a pcasl_pp preprocessed image, calculate weighting for the tag/control pairs based on DVARS-calculated motion
-def calculate_pdvars(img, mask_img, preblur=None):
+def calculate_pdvars(img, mask_img, preblur=None, crit=5.5):
 	imgroot = img.split('.')[0] # remove '.4dfp.img'
 
 	# preblur image prior to dvars if fwhm specified
@@ -45,6 +45,10 @@ def calculate_pdvars(img, mask_img, preblur=None):
 	with open('../movement/pdvars.dat', 'ab') as f:
 		np.savetxt(f, pdvars, fmt='%s')
 
+	format_str = ''.join([ ('x' if v > crit else '+') for v in pdvars ])
+	with open('../movement/{}_pdvars.format'.format(imgroot), 'w') as f:
+		f.write(format_str)
+
 	# cleanup preblurred image
 	if preblur:
 		for f in glob(masked_outfile + '*.4dfp.*'):
@@ -56,6 +60,7 @@ if __name__ == '__main__':
 	parser.add_argument('img')
 	parser.add_argument('mask_img')
 	parser.add_argument('-b', '--preblur', type=float, help='fwhm for blurring in mm')
+	parser.add_argument('-c', '--crit', type=float, help='pdvars criteria for frame exclusion')
 	args = parser.parse_args()
 
-	calculate_pdvars(args.img, args.mask_img, args.preblur)
+	calculate_pdvars(args.img, args.mask_img, args.preblur, args.crit)

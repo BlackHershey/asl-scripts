@@ -25,13 +25,13 @@ def plot_mvmt(patid):
                     data[j].append(float(frame_data[j+1]))
 
         for d in data:
-            axes[i].plot(d)
-        axes[i].set_xlim(0,35) # remove axis padding
-        axes[i].set_ylim(-2.5,2.5)
-        axes[i].set_xticks(np.arange(0, 35, 1), minor=True)
-        axes[i].set_yticks(np.arange(-2.5, 3, .5), minor=True)
+            pyplot.plot(d)
+        axes.set_xlim(0,35) # remove axis padding
+        axes.set_ylim(-2.5,2.5)
+        axes.set_xticks(np.arange(0, 35, 1), minor=True)
+        axes.set_yticks(np.arange(-2.5, 3, .5), minor=True)
         run_label = next(s for s in rdat.split('_') if s != patid)
-        axes[i].set_ylabel(run_label)
+        axes.set_ylabel(run_label)
 
     pyplot.yticks(np.arange(-2, 3, 1))
     pyplot.figlegend(['dx (mm)', 'dy (mm)', 'dz (mm)', 'rotx (deg)', 'roty (deg)', 'rotz (deg)'])

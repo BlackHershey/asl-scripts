@@ -27,7 +27,7 @@ def get_aberrant_frames(fmtfile):
 def time_activity_curve(img, roi, roi_label, ax, timing_file=DEFAULT_TIMING_FILE, pdvars=False, sleep=False, avg_overlay=False, write_csv=True, dat_file=None, save=True):
 	if not dat_file:
 		dat_file = '_'.join([splitext(basename(img))[0], roi_label]) + '.dat' # remove ".4dfp.img" or ".conc" extension and replace with ".dat"
-		if not exists(dat_file):
+		if not exists(dat_file) or True:
 			with open(dat_file, 'wb') as f:
 				call(['qnt_4dfp', img, roi, '-s'], stdout=f)
 	patid = dat_file[:9]
