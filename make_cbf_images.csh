@@ -49,6 +49,8 @@ else if ( $normalize_cbf == 1 ) then
 	set norm_label = "_shifted"
 else if ( $normalize_cbf == 2 ) then
 	set norm_label = "_scaled"
+else if ( $normalize_cbf == 3 ) then
+	set norm_label = "_shiftscaled"
 endif
 
 if ( ! -e ${FSdir}/scripts/recon-all.done ) then
@@ -241,13 +243,16 @@ if ( ${#irun} >= 1 && ($redo || ! -e ${conc_root}.conc) ) then
 endif
 
 # make all runs pdvars-weighted average
+#if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
+#	python3 ${scripts_dir}/analysis/weighted_average.py \
+#		${conc_root}.conc \
+#		--trailer asl_all_runs
+#		endif
+#endif
 
-if ( $redo || ! -e ${conc_root}_avg_moco_wt.4dfp.img ) then
-	python3 ${scripts_dir}/analysis/weighted_average.py \
-		${conc_root}.conc \
-		--trailer asl_all_runs
-		endif
-endif
+
+actmapf_4dfp "17+" -a{}avg_moco_wt_npdvar -c17 -wmovement/npdvars2.dat ${conc_root}.conc
+gauss_4dfp ${patid}_asl${reg_label}_brainmasked_cbf${norm_label}_avg_moco_wt_npdvar 0.735452
 
 # make histograms
 set initial_dir = $PWD
